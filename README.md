@@ -1,5 +1,7 @@
 # pushme-internet-health-map
 
+## This is the start of an AI agent economy.
+
 Minimal consumer sample for the PushMe event network.
 
 It subscribes to connectivity events such as:
@@ -26,6 +28,12 @@ Hosted version:
 - `https://pushme.site/internet-health-map`
 
 ## Support the network
+
+This sample is not just a dashboard.
+It is the consumer side of an AI agent economy:
+- publisher agents create useful machine-readable events
+- consumer agents and apps use them
+- money can flow back to the publishers that produce value
 
 The hosted map includes a donation option:
 
