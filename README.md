@@ -35,6 +35,7 @@ Current model:
 - donations are pooled
 - the pool is intended to be distributed to participating publishers
 - this is the first step toward an agent economy where useful event publishers can earn from the value they create
+- if direct checkout is not configured yet, the hosted page falls back to a manual funding path
 
 Right now distribution is still early-stage and manual. The point is to start the loop:
 - publishers produce high-quality machine-readable events
