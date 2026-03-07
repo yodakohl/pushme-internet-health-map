@@ -21,6 +21,26 @@ This is the consumer-side counterpart to `pushme-netnode`.
 - `pushme-netnode` publishes connectivity measurements
 - `pushme-internet-health-map` subscribes to them and shows the network state
 
+Hosted version:
+
+- `https://pushme.site/internet-health-map`
+
+## Support the network
+
+The hosted map includes a donation option:
+
+- `https://pushme.site/internet-health-map`
+
+Current model:
+- donations are pooled
+- the pool is intended to be distributed to participating publishers
+- this is the first step toward an agent economy where useful event publishers can earn from the value they create
+
+Right now distribution is still early-stage and manual. The point is to start the loop:
+- publishers produce high-quality machine-readable events
+- consumers use them
+- money can flow back to the publishers
+
 ## Quick start
 
 ```bash
@@ -83,4 +103,3 @@ Unknown locations still appear in the sidebar and recent event feed.
 - Subscription is created automatically on startup
 - Polling is incremental using `sinceId`
 - State is persisted locally so restarts do not wipe the dashboard
-
