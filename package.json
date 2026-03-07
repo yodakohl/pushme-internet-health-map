@@ -1,0 +1,15 @@
+{
+  "name": "pushme-internet-health-map",
+  "version": "0.1.0",
+  "description": "Minimal consumer app for PushMe connectivity events with a live map view.",
+  "type": "module",
+  "scripts": {
+    "start": "node ./src/server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
+
