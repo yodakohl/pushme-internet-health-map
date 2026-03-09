@@ -131,6 +131,25 @@ function renderProfileHighlights(metadata) {
   `;
 }
 
+function renderIdentity(metadata) {
+  const identityBits = [
+    metadata.nodeCountry || metadata.nodeCountryCode || null,
+    metadata.nodeRegion || null,
+    metadata.nodeProvider || null,
+    metadata.nodeAsn ? `AS${metadata.nodeAsn}` : null,
+    metadata.nodeNetworkType || null
+  ].filter(Boolean);
+  if (!identityBits.length) return '';
+  return `
+    <div class="detail-block">
+      <div class="detail-label">Node identity</div>
+      <div class="identity-chips">
+        ${identityBits.map((item) => `<span class="identity-chip">${item}</span>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderStats(counts, lastPollAt, syncError) {
   const stats = document.getElementById('stats');
   const lastPoll = document.getElementById('last-poll');
@@ -163,6 +182,7 @@ function renderNodes(nodes) {
           </div>
           <p>${node.summary}</p>
           ${renderTrend(node)}
+          ${renderIdentity(metadata)}
           ${renderGroupDetails(metadata)}
           ${renderProfileHighlights(metadata)}
           <div class="meta">
@@ -173,11 +193,45 @@ function renderNodes(nodes) {
             ${metadata.totalHttpResponseBytes != null ? `<span>HTTP ${metadata.totalHttpResponseBytes} B</span>` : ''}
             ${metadata.totalPingPacketsSent != null ? `<span>ICMP ${metadata.totalPingPacketsSent} pkts</span>` : ''}
             ${metadata.providerReportedProfileCount ? `<span>Provider reports ${metadata.providerReportedProfileCount}</span>` : ''}
+            ${metadata.nodeProvider ? `<span>${metadata.nodeProvider}</span>` : ''}
+            ${metadata.nodeCountryCode ? `<span>${metadata.nodeCountryCode}</span>` : ''}
+            ${metadata.nodeAsn ? `<span>AS${metadata.nodeAsn}</span>` : ''}
+            ${metadata.nodeNetworkType ? `<span>${metadata.nodeNetworkType}</span>` : ''}
             ${node.qualityScore != null ? `<span>Quality ${node.qualityScore}</span>` : ''}
           </div>
         </article>
       `;
     })
+    .join('');
+}
+
+function renderSignals(signals) {
+  const container = document.getElementById('signal-list');
+  if (!container) return;
+  if (!Array.isArray(signals) || !signals.length) {
+    container.innerHTML = '<div class="empty">No multi-node signals yet.</div>';
+    return;
+  }
+  container.innerHTML = signals
+    .map(
+      (signal) => `
+        <article class="signal-card">
+          <div class="signal-top">
+            <div>
+              <strong>${signal.title}</strong>
+              <div>${signal.summary}</div>
+            </div>
+            <span class="status-pill ${severityClass(signal.severity)}">${signal.severity}</span>
+          </div>
+          <div class="meta">
+            <span>${signal.nodeCount} nodes</span>
+            ${Array.isArray(signal.countries) ? `<span>${signal.countries.join(', ')}</span>` : ''}
+            ${Array.isArray(signal.providers) ? `<span>${signal.providers.join(', ')}</span>` : ''}
+            ${Array.isArray(signal.impactedGroups) && signal.impactedGroups.length ? `<span>${signal.impactedGroups.join(', ')}</span>` : ''}
+          </div>
+        </article>
+      `
+    )
     .join('');
 }
 
@@ -241,6 +295,12 @@ function renderMarkers(nodes) {
       ${node.title}<br />
       ${node.summary}<br />
       Diagnosis: ${node.metadata?.diagnosisLabel || 'unknown'}<br />
+      Identity: ${[
+        node.metadata?.nodeCountry || node.metadata?.nodeCountryCode || null,
+        node.metadata?.nodeProvider || null,
+        node.metadata?.nodeAsn ? `AS${node.metadata.nodeAsn}` : null,
+        node.metadata?.nodeNetworkType || null
+      ].filter(Boolean).join(' · ') || 'unknown'}<br />
       Updated ${formatTime(node.updatedAt)}
     `);
   }
@@ -256,6 +316,7 @@ async function refresh() {
   const response = await fetch('/api/state');
   const state = await response.json();
   renderStats(state.counts, state.lastPollAt, state.syncError);
+  renderSignals(state.networkSignals || []);
   renderNodes(state.nodes);
   renderEvents(state.recentEvents);
   renderMarkers(state.nodes);

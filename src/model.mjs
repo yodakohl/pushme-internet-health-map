@@ -71,6 +71,92 @@ export function reduceEvents(state, events, nodeConfig) {
   return next;
 }
 
+function cleanText(value) {
+  const text = String(value ?? '').trim();
+  return text || null;
+}
+
+function normalizeIdentity(metadata) {
+  const source = metadata && typeof metadata === 'object' ? metadata : {};
+  const asn = Number(source.nodeAsn ?? source.asn ?? null);
+  return {
+    countryCode: cleanText(source.nodeCountryCode ?? source.countryCode),
+    country: cleanText(source.nodeCountry ?? source.country),
+    region: cleanText(source.nodeRegion ?? source.region),
+    provider: cleanText(source.nodeProvider ?? source.provider),
+    asn: Number.isFinite(asn) && asn > 0 ? Math.trunc(asn) : null,
+    networkType: cleanText(source.nodeNetworkType ?? source.networkType)
+  };
+}
+
+function uniqueList(values) {
+  return Array.from(new Set(values.filter((value) => value != null && value !== '')));
+}
+
+function buildNetworkSignals(nodes) {
+  const affected = nodes
+    .filter((node) => node.severity === 'down' || node.severity === 'degraded')
+    .map((node) => {
+      const metadata = node.metadata ?? {};
+      return {
+        ...node,
+        identity: normalizeIdentity(metadata),
+        diagnosisLabel: String(metadata.diagnosisLabel ?? 'connectivity issue').trim() || 'connectivity issue',
+        impactedGroups: String(metadata.impactedGroupsCsv ?? '')
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean)
+      };
+    });
+
+  const grouped = new Map();
+  for (const node of affected) {
+    const key = `${node.severity}:${node.diagnosisLabel.toLowerCase()}`;
+    const list = grouped.get(key) ?? [];
+    list.push(node);
+    grouped.set(key, list);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([key, members]) => {
+      if (members.length < 2) return null;
+      const countries = uniqueList(members.map((item) => item.identity.country || item.identity.countryCode || 'Unknown region'));
+      const providers = uniqueList(members.map((item) => item.identity.provider || 'Unknown provider'));
+      const asns = uniqueList(members.map((item) => item.identity.asn));
+      const networkTypes = uniqueList(members.map((item) => item.identity.networkType || 'unknown'));
+      const impactedGroups = uniqueList(members.flatMap((item) => item.impactedGroups));
+      const scopeType = providers.length === 1 ? 'provider' : countries.length === 1 ? 'regional' : 'cross-network';
+      const diagnosisLabel = members[0]?.diagnosisLabel ?? 'connectivity issue';
+      const title =
+        scopeType === 'provider' && countries.length === 1
+          ? `${diagnosisLabel} across ${members.length} ${countries[0]} nodes on ${providers[0]}`
+          : scopeType === 'provider'
+            ? `${diagnosisLabel} across ${members.length} nodes on ${providers[0]}`
+            : scopeType === 'regional' && countries.length === 1
+              ? `${diagnosisLabel} across ${members.length} nodes in ${countries[0]}`
+              : `${diagnosisLabel} across ${members.length} nodes in ${countries.length} countries`;
+      return {
+        id: key,
+        scopeType,
+        severity: members.some((item) => item.severity === 'down') ? 'down' : 'degraded',
+        title,
+        summary: `${countries.length} country · ${providers.length} provider · ${asns.length} ASN · ${networkTypes.join(', ')}${impactedGroups.length ? ` · ${impactedGroups.join(', ')}` : ''}`,
+        nodeCount: members.length,
+        countries,
+        providers,
+        asns,
+        networkTypes,
+        impactedGroups
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const severityDelta = severityRank(b.severity) - severityRank(a.severity);
+      if (severityDelta !== 0) return severityDelta;
+      return b.nodeCount - a.nodeCount;
+    });
+}
+
 export function summarizeNodes(state) {
   const nodesMap = state?.nodes ?? {};
   const recentEvents = Array.isArray(state?.recentEvents) ? state.recentEvents : [];
@@ -133,5 +219,5 @@ export function summarizeNodes(state) {
     else if (severity === 'recovered') counts.recovered += 1;
     else counts.ok += 1;
   }
-  return { nodes, counts };
+  return { nodes, counts, networkSignals: buildNetworkSignals(nodes).slice(0, 6) };
 }

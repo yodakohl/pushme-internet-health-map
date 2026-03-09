@@ -67,10 +67,11 @@ const server = http.createServer((req, res) => {
     return renderStaticFile('./public/app.js', 'application/javascript; charset=utf-8', res);
   }
   if (req.method === 'GET' && url.pathname === '/api/state') {
-    const { nodes, counts } = summarizeNodes(dashboardState);
+    const { nodes, counts, networkSignals } = summarizeNodes(dashboardState);
     return writeJson(res, {
       counts,
       nodes,
+      networkSignals,
       recentEvents: dashboardState.recentEvents ?? [],
       lastPollAt: dashboardState.lastPollAt ?? null,
       syncError

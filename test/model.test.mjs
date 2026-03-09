@@ -50,3 +50,42 @@ test('summarizeNodes counts severities', () => {
   assert.equal(summary.counts.total, 3);
   assert.match(summary.nodes[0].metadata.recentDiagnosisHistoryJson, /broad connectivity issue/);
 });
+
+test('summarizeNodes builds multi-node signals from shared diagnoses', () => {
+  const summary = summarizeNodes({
+    nodes: {
+      a: {
+        location: 'fra-a',
+        label: 'Frankfurt A',
+        severity: 'degraded',
+        updatedAt: '2026-03-07T12:01:00.000Z',
+        metadata: {
+          diagnosisLabel: 'resolver reachability issue',
+          impactedGroupsCsv: 'resolver',
+          nodeCountry: 'Germany',
+          nodeProvider: 'DigitalOcean',
+          nodeAsn: 14061,
+          nodeNetworkType: 'cloud'
+        }
+      },
+      b: {
+        location: 'fra-b',
+        label: 'Frankfurt B',
+        severity: 'degraded',
+        updatedAt: '2026-03-07T12:00:00.000Z',
+        metadata: {
+          diagnosisLabel: 'resolver reachability issue',
+          impactedGroupsCsv: 'resolver',
+          nodeCountry: 'Germany',
+          nodeProvider: 'Hetzner',
+          nodeAsn: 24940,
+          nodeNetworkType: 'cloud'
+        }
+      }
+    },
+    recentEvents: []
+  });
+  assert.equal(summary.networkSignals.length, 1);
+  assert.match(summary.networkSignals[0].title, /resolver reachability issue/);
+  assert.equal(summary.networkSignals[0].nodeCount, 2);
+});

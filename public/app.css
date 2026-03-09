@@ -97,6 +97,7 @@ body {
 }
 
 .map-panel,
+.signals-panel,
 .feed-panel {
   grid-column: 1;
 }
@@ -128,14 +129,16 @@ body {
 }
 
 .node-list,
-.event-feed {
+.event-feed,
+.signal-list {
   padding: 16px;
   display: grid;
   gap: 12px;
 }
 
 .node-card,
-.event-card {
+.event-card,
+.signal-card {
   padding: 16px;
   border-radius: 18px;
   border: 1px solid var(--line);
@@ -143,7 +146,8 @@ body {
 }
 
 .node-top,
-.event-top {
+.event-top,
+.signal-top {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -235,6 +239,24 @@ body {
 .profile-list {
   display: grid;
   gap: 10px;
+}
+
+.identity-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.identity-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  border: 1px solid rgba(14, 44, 59, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
 }
 
 .empty {
