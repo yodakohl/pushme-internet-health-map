@@ -33,12 +33,20 @@ test('reduceEvents stores latest event per location', () => {
 
 test('summarizeNodes counts severities', () => {
   const summary = summarizeNodes({
-    a: { severity: 'down', updatedAt: '2026-03-07T12:01:00.000Z' },
-    b: { severity: 'degraded', updatedAt: '2026-03-07T12:00:00.000Z' },
-    c: { severity: 'recovered', updatedAt: '2026-03-07T11:59:00.000Z' }
+    nodes: {
+      a: { location: 'a', severity: 'down', updatedAt: '2026-03-07T12:01:00.000Z', metadata: { diagnosisLabel: 'broad connectivity issue' } },
+      b: { location: 'b', severity: 'degraded', updatedAt: '2026-03-07T12:00:00.000Z', metadata: { diagnosisLabel: 'resolver reachability issue' } },
+      c: { location: 'c', severity: 'recovered', updatedAt: '2026-03-07T11:59:00.000Z', metadata: { diagnosisLabel: 'healthy connectivity' } }
+    },
+    recentEvents: [
+      { id: 3, location: 'a', severity: 'down', createdAt: '2026-03-07T12:01:00.000Z', metadata: { diagnosisLabel: 'broad connectivity issue' } },
+      { id: 2, location: 'b', severity: 'degraded', createdAt: '2026-03-07T12:00:00.000Z', metadata: { diagnosisLabel: 'resolver reachability issue' } },
+      { id: 1, location: 'c', severity: 'recovered', createdAt: '2026-03-07T11:59:00.000Z', metadata: { diagnosisLabel: 'healthy connectivity' } }
+    ]
   });
   assert.equal(summary.counts.down, 1);
   assert.equal(summary.counts.degraded, 1);
   assert.equal(summary.counts.recovered, 1);
   assert.equal(summary.counts.total, 3);
+  assert.match(summary.nodes[0].metadata.recentDiagnosisHistoryJson, /broad connectivity issue/);
 });

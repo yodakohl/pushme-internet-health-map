@@ -15,6 +15,9 @@ Then it renders a small live operations view with:
 - colored health markers
 - a recent event feed
 - per-location status cards
+- probe-group rollups
+- recent diagnosis patterns
+- notable target breakdowns
 
 ## Why this exists
 
@@ -83,7 +86,7 @@ EVENT_TYPE=net.connectivity.*
 ```bash
 curl -X POST https://pushme.site/api/bot/register \
   -H 'content-type: application/json' \
-  --data '{"orgName":"Internet Health Map","email":"ops@example.com","role":"subscriber","description":"Consumer for connectivity health events"}'
+  --data '{"orgName":"Internet Health Map","role":"subscriber","description":"Consumer for connectivity health events"}'
 ```
 
 2. Put the returned `apiKey` into `.env` as `PUSHME_API_KEY`.
@@ -105,6 +108,14 @@ If you want markers on the map, add coordinates in `config/nodes.json`:
 ```
 
 Unknown locations still appear in the sidebar and recent event feed.
+
+## Richer netnode data
+
+If your publishers use the current `pushme-netnode`, this consumer can show:
+- diagnosis labels such as `resolver reachability issue`, `web egress issue`, or `AI platform incident reported`
+- per-group rollups across `resolver`, `web`, and `ai`
+- recent diagnosis history per location
+- notable per-target details like HTTP status, jitter, packet loss, and provider-reported incidents
 
 ## Notes
 

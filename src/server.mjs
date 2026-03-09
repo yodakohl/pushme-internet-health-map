@@ -67,7 +67,7 @@ const server = http.createServer((req, res) => {
     return renderStaticFile('./public/app.js', 'application/javascript; charset=utf-8', res);
   }
   if (req.method === 'GET' && url.pathname === '/api/state') {
-    const { nodes, counts } = summarizeNodes(dashboardState.nodes);
+    const { nodes, counts } = summarizeNodes(dashboardState);
     return writeJson(res, {
       counts,
       nodes,
@@ -86,4 +86,3 @@ server.listen(config.port, () => {
 pollLoop().catch((error) => {
   console.error(error instanceof Error ? error.stack ?? error.message : String(error));
 });
-

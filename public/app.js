@@ -31,6 +31,106 @@ function formatTime(value) {
   return date.toLocaleString();
 }
 
+function parseJsonField(value, fallback = []) {
+  if (!value) return fallback;
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function renderTrend(node) {
+  const metadata = node.metadata || {};
+  const recent = parseJsonField(metadata.recentDiagnosisHistoryJson, []);
+  const diagnosisCounts = String(metadata.recentDiagnosisCountsCsv || '')
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const idx = part.lastIndexOf(':');
+      return idx === -1 ? null : { label: part.slice(0, idx), count: Number(part.slice(idx + 1)) || 0 };
+    })
+    .filter(Boolean);
+  if (!recent.length) return '';
+  const lead = metadata.persistentDiagnosisLabel
+    ? `Persistent pattern: ${metadata.persistentDiagnosisLabel}`
+    : diagnosisCounts.length
+      ? `Recent pattern: ${diagnosisCounts[0].label} ${diagnosisCounts[0].count}/${recent.length}`
+      : 'Recent diagnosis history';
+  const chips = recent
+    .map((item) => {
+      const impactedGroups = item.impactedGroupsCsv ? ` · ${item.impactedGroupsCsv}` : '';
+      return `<span class="trend-chip ${severityClass(item.severity)}" title="${formatTime(item.createdAt)}">${item.diagnosisLabel}${impactedGroups}</span>`;
+    })
+    .join('');
+  return `
+    <div class="trend-block">
+      <div class="trend-label">${lead}</div>
+      <div class="trend-chips">${chips}</div>
+    </div>
+  `;
+}
+
+function renderGroupDetails(metadata) {
+  const groups = parseJsonField(metadata.groupStatsJson, []);
+  if (!groups.length) return '';
+  return `
+    <div class="detail-block">
+      <div class="detail-label">Probe groups</div>
+      <div class="group-grid">
+        ${groups
+          .map(
+            (group) => `
+              <div class="group-card">
+                <strong>${group.group}</strong>
+                <span>${group.impactedCount}/${group.profileCount} impacted</span>
+                ${group.providerReportedCount ? `<span>provider ${group.providerReportedCount}</span>` : ''}
+                ${group.avgDnsLatencyMs != null ? `<span>DNS ${group.avgDnsLatencyMs} ms</span>` : ''}
+                ${group.avgHttpLatencyMs != null ? `<span>HTTP ${group.avgHttpLatencyMs} ms</span>` : ''}
+                ${group.avgJitterMs != null ? `<span>jitter ${group.avgJitterMs} ms</span>` : ''}
+                ${group.maxPacketLossPct != null ? `<span>loss ${group.maxPacketLossPct}%</span>` : ''}
+              </div>
+            `
+          )
+          .join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderProfileHighlights(metadata) {
+  const profiles = parseJsonField(metadata.profilesJson, []);
+  const notable = profiles.filter(
+    (profile) => profile.severity !== 'ok' || profile.providerStatusSeverity || profile.httpError || profile.dnsError || profile.packetError
+  );
+  if (!notable.length) return '';
+  return `
+    <div class="detail-block">
+      <div class="detail-label">Notable targets</div>
+      <div class="profile-list">
+        ${notable
+          .slice(0, 5)
+          .map(
+            (profile) => `
+              <div class="profile-row">
+                <strong>${profile.label}</strong>
+                <span>${profile.group} · ${profile.severity}</span>
+                ${profile.providerStatusSeverity ? `<span>provider ${profile.providerStatusSeverity}${profile.providerStatusDescription ? `: ${profile.providerStatusDescription}` : ''}</span>` : ''}
+                ${profile.httpStatusCode != null ? `<span>HTTP ${profile.httpStatusCode}</span>` : ''}
+                ${profile.httpLatencyMs != null ? `<span>${profile.httpLatencyMs} ms</span>` : ''}
+                ${profile.packetJitterMs != null ? `<span>jitter ${profile.packetJitterMs} ms</span>` : ''}
+                ${profile.packetLossPct != null ? `<span>loss ${profile.packetLossPct}%</span>` : ''}
+              </div>
+            `
+          )
+          .join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderStats(counts, lastPollAt, syncError) {
   const stats = document.getElementById('stats');
   const lastPoll = document.getElementById('last-poll');
@@ -62,11 +162,16 @@ function renderNodes(nodes) {
             <span class="status-pill ${severityClass(node.severity)}">${node.severity}</span>
           </div>
           <p>${node.summary}</p>
+          ${renderTrend(node)}
+          ${renderGroupDetails(metadata)}
+          ${renderProfileHighlights(metadata)}
           <div class="meta">
             <span>Updated ${formatTime(node.updatedAt)}</span>
-            ${metadata.dnsLatencyMs != null ? `<span>DNS ${metadata.dnsLatencyMs} ms</span>` : ''}
-            ${metadata.httpLatencyMs != null ? `<span>HTTP ${metadata.httpLatencyMs} ms</span>` : ''}
-            ${metadata.packetLossPct != null ? `<span>Loss ${metadata.packetLossPct}%</span>` : ''}
+            ${metadata.diagnosisLabel ? `<span>Diagnosis ${metadata.diagnosisLabel}</span>` : ''}
+            ${metadata.groupCount != null ? `<span>Groups ${metadata.groupCount}</span>` : ''}
+            ${metadata.profileCount != null ? `<span>Profiles ${metadata.profileCount}</span>` : ''}
+            ${metadata.providerReportedProfileCount ? `<span>Provider reports ${metadata.providerReportedProfileCount}</span>` : ''}
+            ${node.qualityScore != null ? `<span>Quality ${node.qualityScore}</span>` : ''}
           </div>
         </article>
       `;
@@ -82,8 +187,9 @@ function renderEvents(events) {
   }
   container.innerHTML = events
     .slice(0, 20)
-    .map(
-      (event) => `
+    .map((event) => {
+      const metadata = event.metadata ?? {};
+      return `
         <article class="event-card">
           <div class="event-top">
             <div>
@@ -96,11 +202,13 @@ function renderEvents(events) {
           <div class="event-meta">
             <span>${formatTime(event.createdAt)}</span>
             <span>${event.eventType}</span>
+            ${metadata.diagnosisLabel ? `<span>${metadata.diagnosisLabel}</span>` : ''}
+            ${metadata.impactedGroupsCsv ? `<span>${metadata.impactedGroupsCsv}</span>` : ''}
             ${event.qualityScore != null ? `<span>Quality ${event.qualityScore}</span>` : ''}
           </div>
         </article>
-      `
-    )
+      `;
+    })
     .join('');
 }
 
@@ -130,6 +238,7 @@ function renderMarkers(nodes) {
       <strong>${node.label}</strong><br />
       ${node.title}<br />
       ${node.summary}<br />
+      Diagnosis: ${node.metadata?.diagnosisLabel || 'unknown'}<br />
       Updated ${formatTime(node.updatedAt)}
     `);
   }
@@ -159,4 +268,3 @@ setInterval(() => {
     console.error(error);
   });
 }, 10000);
-

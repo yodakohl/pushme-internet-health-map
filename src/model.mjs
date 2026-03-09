@@ -59,7 +59,8 @@ export function reduceEvents(state, events, nodeConfig) {
       summary: event.summary,
       eventType: event.eventType,
       createdAt: event.createdAt,
-      qualityScore: event.qualityScore ?? null
+      qualityScore: event.qualityScore ?? null,
+      metadata
     });
   }
 
@@ -70,12 +71,60 @@ export function reduceEvents(state, events, nodeConfig) {
   return next;
 }
 
-export function summarizeNodes(nodesMap) {
-  const nodes = Object.values(nodesMap ?? {}).sort((a, b) => {
-    const severityDelta = severityRank(b.severity) - severityRank(a.severity);
-    if (severityDelta !== 0) return severityDelta;
-    return String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''));
-  });
+export function summarizeNodes(state) {
+  const nodesMap = state?.nodes ?? {};
+  const recentEvents = Array.isArray(state?.recentEvents) ? state.recentEvents : [];
+  const recentByLocation = new Map();
+
+  for (const event of recentEvents) {
+    const metadata = event.metadata ?? {};
+    const location = String(event.location ?? metadata.location ?? 'unknown').trim() || 'unknown';
+    const entries = recentByLocation.get(location) ?? [];
+    entries.push({
+      id: event.id,
+      createdAt: event.createdAt,
+      severity: event.severity,
+      diagnosisLabel: String(metadata.diagnosisLabel ?? 'connectivity change').trim() || 'connectivity change',
+      impactedGroupsCsv: String(metadata.impactedGroupsCsv ?? '').trim(),
+      profileCount: Number.isFinite(Number(metadata.profileCount)) ? Number(metadata.profileCount) : null,
+      impactedProfileCount: Number.isFinite(Number(metadata.impactedProfileCount)) ? Number(metadata.impactedProfileCount) : null
+    });
+    recentByLocation.set(location, entries);
+  }
+
+  const nodes = Object.values(nodesMap)
+    .map((node) => {
+      const metadata = node.metadata ?? {};
+      const trendItems = (recentByLocation.get(node.location) ?? []).slice(0, 6);
+      const diagnosisCounts = Array.from(
+        trendItems.reduce((acc, item) => {
+          acc.set(item.diagnosisLabel, (acc.get(item.diagnosisLabel) ?? 0) + 1);
+          return acc;
+        }, new Map()).entries()
+      )
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count }));
+      const recentNonOk = trendItems.filter((item) => item.severity !== 'ok' && item.severity !== 'recovered');
+      const persistentDiagnosisLabel =
+        recentNonOk.length >= 3 && recentNonOk.slice(0, 3).every((item) => item.diagnosisLabel === recentNonOk[0].diagnosisLabel)
+          ? recentNonOk[0].diagnosisLabel
+          : null;
+      return {
+        ...node,
+        metadata: {
+          ...metadata,
+          recentDiagnosisHistoryJson: JSON.stringify(trendItems),
+          recentDiagnosisCountsCsv: diagnosisCounts.map((item) => `${item.label}:${item.count}`).join('|'),
+          persistentDiagnosisLabel
+        }
+      };
+    })
+    .sort((a, b) => {
+      const severityDelta = severityRank(b.severity) - severityRank(a.severity);
+      if (severityDelta !== 0) return severityDelta;
+      return String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''));
+    });
+
   const counts = { down: 0, degraded: 0, recovered: 0, ok: 0, total: nodes.length };
   for (const node of nodes) {
     const severity = String(node.severity ?? 'ok');
@@ -86,4 +135,3 @@ export function summarizeNodes(nodesMap) {
   }
   return { nodes, counts };
 }
-
