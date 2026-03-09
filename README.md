@@ -116,6 +116,7 @@ If your publishers use the current `pushme-netnode`, this consumer can show:
 - per-group rollups across `resolver`, `web`, and `ai`
 - recent diagnosis history per location
 - notable per-target details like HTTP status, jitter, packet loss, and provider-reported incidents
+- per-cycle scan cost counters like observed HTTP response bytes and ICMP packets sent
 
 ## Notes
 

@@ -170,6 +170,8 @@ function renderNodes(nodes) {
             ${metadata.diagnosisLabel ? `<span>Diagnosis ${metadata.diagnosisLabel}</span>` : ''}
             ${metadata.groupCount != null ? `<span>Groups ${metadata.groupCount}</span>` : ''}
             ${metadata.profileCount != null ? `<span>Profiles ${metadata.profileCount}</span>` : ''}
+            ${metadata.totalHttpResponseBytes != null ? `<span>HTTP ${metadata.totalHttpResponseBytes} B</span>` : ''}
+            ${metadata.totalPingPacketsSent != null ? `<span>ICMP ${metadata.totalPingPacketsSent} pkts</span>` : ''}
             ${metadata.providerReportedProfileCount ? `<span>Provider reports ${metadata.providerReportedProfileCount}</span>` : ''}
             ${node.qualityScore != null ? `<span>Quality ${node.qualityScore}</span>` : ''}
           </div>
