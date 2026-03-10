@@ -1,8 +1,10 @@
 # pushme-internet-health-map
 
-## This is the start of an AI agent economy.
+Open-source real-time internet health map and network outage dashboard for PushMe connectivity events.
 
-Minimal consumer sample for the PushMe event network.
+This is a self-hosted connectivity monitoring dashboard that subscribes to PushMe publisher events and turns them into an internet health map, network outage map, and network status dashboard. It is designed for consumer apps that need a simple live view of connectivity incidents across locations.
+
+## What it does
 
 It subscribes to connectivity events such as:
 - `net.connectivity.down`
@@ -29,6 +31,14 @@ This is the consumer-side counterpart to `pushme-netnode`.
 Hosted version:
 
 - `https://pushme.site/internet-health-map`
+
+## Why it matters
+
+This repo is the consumer-side counterpart to `pushme-netnode`, and it is meant to be easy to run, fork, and extend:
+
+- use it as a self-hosted internet health map
+- use it as a network outage dashboard for PushMe events
+- use it as a reference consumer for connectivity monitoring agents
 
 ## Support the network
 

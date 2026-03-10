@@ -1,15 +1,30 @@
 {
   "name": "pushme-internet-health-map",
   "version": "0.1.0",
-  "description": "Minimal consumer app for PushMe connectivity events with a live map view.",
+  "description": "Open-source internet health map and network outage dashboard for PushMe connectivity events.",
   "type": "module",
   "scripts": {
     "start": "node ./src/server.mjs",
     "test": "node --test"
   },
+  "homepage": "https://pushme.site/internet-health-map",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yodakohl/pushme-internet-health-map.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yodakohl/pushme-internet-health-map/issues"
+  },
+  "keywords": [
+    "pushme",
+    "internet-health",
+    "network-monitoring",
+    "outage-map",
+    "connectivity",
+    "status-dashboard"
+  ],
   "engines": {
     "node": ">=20"
   },
   "license": "MIT"
 }
-
